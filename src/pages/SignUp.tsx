@@ -9,7 +9,7 @@ function Login() {
         <>
         <div className="flex">
             {/* banner section */}
-            <div className="border-1">
+            <div className="border">
                 <h3>Boredom Buster</h3>
                 <h2>Turn your idle time into achievement.</h2>
                 <p>Join over 12,000 explorers gamifying their daily productivity and finding excitement in every small task.</p>
@@ -32,9 +32,9 @@ function Login() {
                 </div>
                 <button>Sign In =3</button>
                 <div className="flex">
-                <div className="border-1"></div>
+                <div className="border"></div>
                 <p>Or Continue with</p>
-                <div className="border-1"></div>
+                <div className="border"></div>
                 </div>
                     <button>Google</button>
                     <button>Discord</button>
