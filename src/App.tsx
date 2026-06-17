@@ -1,13 +1,11 @@
-import { useState } from 'react'
-import Login from './pages/Login'
 import './App.css'
+import SplashScreen from './pages/SplashScreen'
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <>
-      <Login></Login>
+    <SplashScreen></SplashScreen>
     </>
   )
 }
