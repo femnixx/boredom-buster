@@ -1,11 +1,11 @@
 import './App.css'
-import SplashScreen from './pages/SplashScreen'
+import Login from './pages/Login'
 
 function App() {
 
   return (
     <>
-    <SplashScreen></SplashScreen>
+    <Login></Login>
     </>
   )
 }

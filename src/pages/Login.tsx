@@ -1,44 +1,27 @@
 import { useState } from "react";
-import FloatingLoginBanner from "../components/FloatingLoginBanner";
+import LoginComponent from "@/components/LoginComponent";
+import SignUpComponent from "@/components/SignUpComponent";
+import WelcomeHeroSection from '@/assets/WelcomeHeroSection.png';
+import BoredomBusterLogo from '@/assets/BoredomBusterLogo.png';
 
 function Login() {
     const [email, setEmail] = useState(""); 
     const [password, setPassword] = useState("");
+    const [active, setActive] = useState(true);
     return (
         <>
-        <div className="flex">
-            {/* banner section */}
-            <div className="border-1">
-                <h3>Boredom Buster</h3>
-                <h2>Turn your idle time into achievement.</h2>
-                <p>Join over 12,000 explorers gamifying their daily productivity and finding excitement in every small task.</p>
-                
-                <FloatingLoginBanner />
+        <div className="mx-5">
+            <div className="flex mt-4 w-9/12">
+                <img src={BoredomBusterLogo} alt="Boredom buster logo" className="" />
             </div>
-            {/* login section */}
-            <div>
-                <h3>Welcome Back</h3>
-                <p>Log in to resume your progress.</p>
-                <p>Email Address</p>
-                <input type="text" placeholder="explorer@boredombuster.com" value={email} onChange={(e) => setEmail(e.target.value)}/>
-                <p>Password</p>
-                <input type="password"  placeholder="****" value={password} hidden onChange={(e) => setPassword(e.target.value)}/>
-                <div className="flex">
-                    <div>Check Icon</div>
-                    <p>Keep me signed in</p>
-                </div>
-                <button>Sign In =3</button>
-                <div className="flex">
-                <div className="border-1"></div>
-                <p>Or Continue with</p>
-                <div className="border-1"></div>
-                </div>
-                    <button>Google</button>
-                    <button>Discord</button>
-                <div className="flex">
-                <p>New to the journey?<button>Sign Up</button></p>
-                </div>
-            </div>
+
+            <div className="flex flex-col relative mt-10">
+                <img src={WelcomeHeroSection} alt="Welcome hero section" className="rounded-2xl z-0 drop-shadow-xl"/>
+                <p className="text-sm -mt-20 z-20 text-white/90 ml-5 shadow-xl">Welcome back.</p>
+                <span className="text-sm z-20 text-white/90 ml-5 shadow-xl">Your next adventure is just a tap <p>away.</p></span>
+
+            </div >
+            <LoginComponent></LoginComponent>
         </div>
         </>
     )
