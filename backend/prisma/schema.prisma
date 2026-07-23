@@ -1,0 +1,753 @@
+// Prisma schema for Boredom Buster
+// This schema defines the complete database structure for the application
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Users & Authentication
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String?
+  avatarUrl     String?
+  emailVerified Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  oauthProvider String?
+  oauthId       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  stats         UserStats?
+  settings      UserSettings?
+  character     Character?
+  quests        UserQuest[]
+  verifications Verification[]
+  friendships1  Friendship[] @relation("UserFriendships1")
+  friendships2  Friendship[] @relation("UserFriendships2")
+  guildMembers  GuildMember[]
+  achievements  UserAchievement[]
+  transactions  Transaction[]
+  marketplaceListings MarketplaceListing[]
+  purchases     Purchase[]
+  activity      UserActivity[]
+  dailyStats    DailyStat[]
+  leaderboards  Leaderboard[]
+
+  @@map("users")
+}
+
+model UserStats {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  level       Int      @default(1)
+  xp          Int      @default(0)
+  totalXp     Int      @default(0)
+  gold        Int      @default(0)
+  gems        Int      @default(0)
+  streakDays  Int      @default(0)
+  lastActive  DateTime @default(now())
+  questsCompleted Int  @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+}
+
+model UserSettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  theme             String   @default("dark")
+  notifications     Boolean  @default(true)
+  emailNotifications Boolean @default(true)
+  pushNotifications Boolean  @default(true)
+  privacyProfile    Boolean  @default(false)
+  privacyActivity   Boolean  @default(false)
+  language          String   @default("en")
+  timezone          String   @default("UTC")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+// ============================================
+// Character System
+// ============================================
+
+model Character {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  name        String
+  classType   CharacterClass
+  level       Int      @default(1)
+  xp          Int      @default(0)
+  title       String?  @default("Novice")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stats        CharacterStats?
+  appearance   CharacterAppearance?
+  inventory    Inventory[]
+  equippedItems EquippedItem[]
+
+  @@map("characters")
+}
+
+enum CharacterClass {
+  WARRIOR
+  MAGE
+  ROGUE
+  HEALER
+  SAGE
+}
+
+model CharacterStats {
+  id            String   @id @default(cuid())
+  characterId   String   @unique
+  strength      Int      @default(10)
+  intelligence  Int      @default(10)
+  charisma      Int      @default(10)
+  stamina       Int      @default(10)
+  wisdom        Int      @default(10)
+  luck          Int      @default(10)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@map("character_stats")
+}
+
+model CharacterAppearance {
+  id          String   @id @default(cuid())
+  characterId String   @unique
+  skinColor   String   @default("#ffdbac")
+  hairStyle   String   @default("short")
+  hairColor   String   @default("#4a3728")
+  eyeColor    String   @default("#8b4513")
+  outfit      String?  @default("basic")
+  accessories String?  @default("none")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@map("character_appearance")
+}
+
+// ============================================
+// Inventory & Items
+// ============================================
+
+model Item {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        ItemType
+  rarity      ItemRarity
+  slot        EquipmentSlot?
+  stats       Json?    // { strength: 5, intelligence: 3, etc. }
+  iconUrl     String?
+  imageUrl    String?
+  requirements Json?   // { level: 10, class: "warrior" }
+  createdAt   DateTime @default(now())
+
+  inventory   Inventory[]
+  equippedItems EquippedItem[]
+  marketplaceListings MarketplaceListing[]
+
+  @@map("items")
+}
+
+enum ItemType {
+  WEAPON
+  ARMOR
+  ACCESSORY
+  CONSUMABLE
+  MATERIAL
+  QUEST
+  COSMETIC
+}
+
+enum ItemRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+  MYTHIC
+}
+
+enum EquipmentSlot {
+  HEAD
+  CHEST
+  LEGS
+  FEET
+  HANDS
+  MAIN_HAND
+  OFF_HAND
+  RING
+  NECKLACE
+  BELT
+  BACK
+}
+
+model Inventory {
+  id          String   @id @default(cuid())
+  characterId String
+  itemId      String
+  quantity    Int      @default(1)
+  createdAt   DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  item      Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, itemId])
+  @@map("inventory")
+}
+
+model EquippedItem {
+  id          String   @id @default(cuid())
+  characterId String
+  itemId      String
+  slot        EquipmentSlot
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  item      Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, slot])
+  @@map("equipped_items")
+}
+
+// ============================================
+// Quest System
+// ============================================
+
+model Quest {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  difficulty    QuestDifficulty
+  type          QuestType
+  xpReward      Int
+  goldReward    Int
+  gemReward     Int      @default(0)
+  requirements  Json?    // { level: 5, class: ["warrior", "mage"], stats: { strength: 10 } }
+  prerequisites String[] @default([]) // Array of quest IDs
+  isRepeatable  Boolean  @default(false)
+  cooldownHours Int?     @default(24)
+  maxCompletions Int?    @default(1)
+  isActive      Boolean  @default(true)
+  isPremium     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  steps        QuestStep[]
+  userQuests   UserQuest[]
+
+  @@map("quests")
+}
+
+enum QuestDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  EPIC
+  LEGENDARY
+}
+
+enum QuestType {
+  DAILY
+  WEEKLY
+  MAIN_STORY
+  SIDE
+  HABIT
+  EVENT
+  ACHIEVEMENT
+}
+
+model QuestStep {
+  id                String            @id @default(cuid())
+  questId           String
+  stepNumber        Int
+  description       String
+  verificationType  VerificationType
+  targetValue       Int               @default(1)
+  instructions      String?
+  hints             String[]
+  createdAt         DateTime          @default(now())
+
+  quest            Quest             @relation(fields: [questId], references: [id], onDelete: Cascade)
+  userProgress     UserQuestProgress[]
+
+  @@unique([questId, stepNumber])
+  @@map("quest_steps")
+}
+
+model UserQuest {
+  id          String        @id @default(cuid())
+  userId      String
+  questId     String
+  status      QuestStatus   @default(ACTIVE)
+  progress    Int           @default(0)
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
+  expiresAt   DateTime?
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+  steps UserQuestProgress[]
+
+  @@unique([userId, questId])
+  @@map("user_quests")
+}
+
+enum QuestStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+  EXPIRED
+  FAILED
+}
+
+model UserQuestProgress {
+  id              String            @id @default(cuid())
+  userId          String
+  questId         String
+  stepId          String
+  currentValue    Int               @default(0)
+  isVerified      Boolean           @default(false)
+  verifiedAt      DateTime?
+  verificationId  String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  userQuest   UserQuest   @relation(fields: [questId, userId], references: [id], onDelete: Cascade)
+  step        QuestStep   @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId, stepId])
+  @@map("user_quest_progress")
+}
+
+// ============================================
+// AI Verification System
+// ============================================
+
+model Verification {
+  id              String            @id @default(cuid())
+  userId          String
+  questStepId     String
+  type            VerificationType
+  status          VerificationStatus @default(PENDING)
+  mediaUrl        String?
+  thumbnailUrl    String?
+  aiConfidence    Float?
+  aiAnalysis      Json?
+  humanVerified   Boolean           @default(false)
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos     VerificationPhoto[]
+  videos     VerificationVideo[]
+  texts      VerificationText[]
+
+  @@map("verifications")
+}
+
+enum VerificationType {
+  PHOTO
+  VIDEO
+  TEXT
+  LOCATION
+  MULTI_MODAL
+}
+
+enum VerificationStatus {
+  PENDING
+  PROCESSING
+  APPROVED
+  REJECTED
+  NEEDS_REVIEW
+}
+
+model VerificationPhoto {
+  id            String   @id @default(cuid())
+  verificationId String
+  url           String
+  thumbnailUrl  String?
+  width         Int?
+  height        Int?
+  fileSize      Int?
+  exifData      Json?
+  analyzedData  Json?
+  createdAt     DateTime @default(now())
+
+  verification Verification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@map("verification_photos")
+}
+
+model VerificationVideo {
+  id            String   @id @default(cuid())
+  verificationId String
+  url           String
+  thumbnailUrl  String?
+  duration      Int?     // in seconds
+  fileSize      Int?
+  frameCount    Int?
+  analyzedData  Json?
+  createdAt     DateTime @default(now())
+
+  verification Verification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@map("verification_videos")
+}
+
+model VerificationText {
+  id            String   @id @default(cuid())
+  verificationId String
+  content       String   @db.Text
+  wordCount     Int?
+  analyzedData  Json?
+  createdAt     DateTime @default(now())
+
+  verification Verification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@map("verification_texts")
+}
+
+// ============================================
+// Social Features
+// ============================================
+
+model Friendship {
+  id        String        @id @default(cuid())
+  userId    String
+  friendId  String
+  status    FriendshipStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user   User @relation("UserFriendships1", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("UserFriendships2", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@map("friendships")
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+  DECLINED
+}
+
+model Guild {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  iconUrl     String?
+  bannerUrl   String?
+  ownerId     String
+  memberCount Int      @default(1)
+  maxMembers  Int      @default(50)
+  isPublic    Boolean  @default(true)
+  level       Int      @default(1)
+  xp          Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members GuildMember[]
+
+  @@map("guilds")
+}
+
+model GuildMember {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  role      GuildRole @default(MEMBER)
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, userId])
+  @@map("guild_members")
+}
+
+enum GuildRole {
+  OWNER
+  OFFICER
+  MEMBER
+}
+
+// ============================================
+// Achievements
+// ============================================
+
+model Achievement {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  iconUrl     String?
+  rarity      AchievementRarity
+  category    AchievementCategory
+  criteria    Json     // { type: "quests_completed", value: 100 }
+  rewards     Json?    // { xp: 500, gold: 1000, itemId: "xyz" }
+  isHidden    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+enum AchievementRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum AchievementCategory {
+  QUESTS
+  SOCIAL
+  EXPLORATION
+  COLLECTION
+  SPECIAL
+  SEASONAL
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  progress      Int      @default(0)
+  unlockedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// ============================================
+// Economy System
+// ============================================
+
+model Transaction {
+  id          String        @id @default(cuid())
+  userId      String
+  type        TransactionType
+  amount      Int
+  currency    CurrencyType
+  description String
+  relatedId   String?       // ID of related item/quest/etc.
+  relatedType String?
+  balance     Int           // Balance after transaction
+  createdAt   DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+enum TransactionType {
+  EARNED
+  SPENT
+  PURCHASED
+  SOLD
+  REWARD
+  BONUS
+  REFUND
+  ADMIN_ADJUSTMENT
+}
+
+enum CurrencyType {
+  GOLD
+  GEMS
+}
+
+model MarketplaceListing {
+  id          String   @id @default(cuid())
+  sellerId    String
+  itemId      String
+  price       Int
+  currency    CurrencyType @default(GOLD)
+  status      ListingStatus @default(ACTIVE)
+  listedAt    DateTime @default(now())
+  soldAt      DateTime?
+  updatedAt   DateTime @updatedAt
+
+  seller  User @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  item    Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  purchase Purchase?
+
+  @@map("marketplace_listings")
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  EXPIRED
+  CANCELLED
+}
+
+model Purchase {
+  id          String   @id @default(cuid())
+  buyerId     String
+  listingId   String   @unique
+  price       Int
+  currency    CurrencyType
+  purchasedAt DateTime @default(now())
+
+  buyer   User              @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  listing MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("purchases")
+}
+
+// ============================================
+// Leaderboards
+// ============================================
+
+model Leaderboard {
+  id        String        @id @default(cuid())
+  userId    String
+  type      LeaderboardType
+  period    LeaderboardPeriod
+  score     Int
+  rank      Int?
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, period])
+  @@map("leaderboards")
+}
+
+enum LeaderboardType {
+  LEVEL
+  XP
+  GOLD
+  QUESTS_COMPLETED
+  STREAK
+  GUILD
+}
+
+enum LeaderboardPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  ALL_TIME
+}
+
+// ============================================
+// Analytics
+// ============================================
+
+model UserActivity {
+  id          String   @id @default(cuid())
+  userId      String
+  activityType ActivityType
+  duration    Int?     // in seconds
+  metadata    Json?
+  timestamp   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@map("user_activity")
+}
+
+enum ActivityType {
+  QUEST_STARTED
+  QUEST_COMPLETED
+  QUEST_FAILED
+  ITEM_EQUIPPED
+  ITEM_PURCHASED
+  SOCIAL_INTERACTION
+  ACHIEVEMENT_UNLOCKED
+  LEVEL_UP
+  LOGIN
+  LOGOUT
+  VERIFICATION_SUBMITTED
+}
+
+model DailyStat {
+  id              String   @id @default(cuid())
+  userId          String
+  date            DateTime @db.Date
+  questsCompleted Int      @default(0)
+  xpEarned        Int      @default(0)
+  goldEarned      Int      @default(0)
+  playTime        Int      @default(0) // in seconds
+  verifications   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("daily_stats")
+}
+
+// ============================================
+// Notifications
+// ============================================
+
+model Notification {
+  id        String            @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean           @default(false)
+  readAt    DateTime?
+  createdAt DateTime          @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  QUEST_AVAILABLE
+  QUEST_COMPLETED
+  ACHIEVEMENT_UNLOCKED
+  FRIEND_REQUEST
+  GUILD_INVITE
+  LEVEL_UP
+  REWARD_RECEIVED
+  SYSTEM
+  PROMOTION
+}

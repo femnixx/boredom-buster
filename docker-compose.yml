@@ -1,0 +1,146 @@
+version: '3.8'
+
+# ============================================
+# Boredom Buster - Development Environment
+# ============================================
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: boredom-buster-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: boredom_buster
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+      POSTGRES_DB: boredom_buster
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - boredom-buster-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U boredom_buster"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: boredom-buster-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - boredom-buster-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: boredom-buster-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://boredom_buster:${DB_PASSWORD:-dev_password}@postgres:5432/boredom_buster
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-refresh-key-change-in-production}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      PORT: 3001
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      FROM_EMAIL: noreply@boredombuster.app
+      FRONTEND_URL: http://localhost:5173
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      MAX_FILE_SIZE: 10485760
+      AI_CONFIDENCE_THRESHOLD: 0.7
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - ./backend/logs:/app/logs
+    networks:
+      - boredom-buster-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend (Vite dev server)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: boredom-buster-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3001/api
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./tsconfig.app.json:/app/tsconfig.app.json
+      - /app/node_modules
+    depends_on:
+      - api
+    networks:
+      - boredom-buster-network
+
+  # Prisma Studio (Database GUI)
+  prisma-studio:
+    image: node:20-alpine
+    container_name: boredom-buster-studio
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm install prisma && npx prisma studio"
+    ports:
+      - "5555:5555"
+    environment:
+      DATABASE_URL: postgresql://boredom_buster:${DB_PASSWORD:-dev_password}@postgres:5432/boredom_buster
+    volumes:
+      - ./backend/prisma:/app/prisma
+      - ./backend/package.json:/app/package.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - boredom-buster-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  boredom-buster-network:
+    driver: bridge
