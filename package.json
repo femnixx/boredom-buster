@@ -10,13 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@react-navigation/elements": "^2.9.25",
+    "@react-navigation/elements": "^2.9.25",zzzz
     "@react-navigation/native": "^7.3.3",
     "@tailwindcss/vite": "^4.3.1",
     "create-react-router": "^7.18.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-router": "^7.18.0",
+    "react-router-dom": "^7.18.1",
     "tailwindcss": "^4.3.1"
   },
   "devDependencies": {

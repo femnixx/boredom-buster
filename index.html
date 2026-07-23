@@ -1,13 +1,1490 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>boredom-buster</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boredom Buster - Gamified RPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#090D16',
+                        charcoal: '#151D2A',
+                        emerald: '#10B981',
+                        cyberPurple: '#A855F7',
+                        amberGold: '#F59E0B',
+                        slate: {
+                            850: '#1a2332',
+                            900: '#0f172a',
+                            950: '#090D16'
+                        }
+                    },
+                    fontFamily: {
+                        outfit: ['Outfit', 'sans-serif'],
+                        jakarta: ['Plus Jakarta Sans', 'sans-serif']
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'scan': 'scan 2s linear infinite',
+                        'typing': 'typing 0.5s steps(20)'
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px rgba(16, 185, 129, 0.5)' },
+                            '100%': { boxShadow: '0 0 20px rgba(16, 185, 129, 0.8), 0 0 30px rgba(16, 185, 129, 0.4)' }
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        scan: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100%)' }
+                        },
+                        typing: {
+                            '0%': { width: '0' },
+                            '100%': { width: '100%' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #090D16;
+            overflow-x: hidden;
+        }
+        
+        .glass {
+            background: rgba(21, 29, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .glass-strong {
+            background: rgba(21, 29, 42, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glow-emerald {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3), 0 0 40px rgba(16, 185, 129, 0.1);
+        }
+        
+        .glow-purple {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.3), 0 0 40px rgba(168, 85, 247, 0.1);
+        }
+        
+        .glow-amber {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3), 0 0 40px rgba(245, 158, 11, 0.1);
+        }
+        
+        .text-glow {
+            text-shadow: 0 0 10px currentColor;
+        }
+        
+        .gradient-border {
+            position: relative;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(168, 85, 247, 0.1));
+            border-radius: 1rem;
+        }
+        
+        .gradient-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 1rem;
+            padding: 1px;
+            background: linear-gradient(135deg, #10B981, #A855F7);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+        
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #10B981, transparent);
+            animation: scan 2s linear infinite;
+            opacity: 0.5;
+        }
+        
+        .terminal-text {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .xp-bar-fill {
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .quest-card {
+            transition: all 0.3s ease;
+        }
+        
+        .quest-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(16, 185, 129, 0.2);
+        }
+        
+        .skill-node {
+            transition: all 0.3s ease;
+        }
+        
+        .skill-node:hover {
+            transform: scale(1.1);
+        }
+        
+        .skill-node.unlocked {
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .float-animation {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .camera-preview {
+            transform: scaleX(-1);
+        }
+        
+        .dropzone {
+            border: 2px dashed rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .dropzone.dragover {
+            border-color: #10B981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .badge {
+            transition: all 0.3s ease;
+        }
+        
+        .badge:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+        
+        .social-post {
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        .pixel-grid {
+            background-image: 
+                linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.02;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            z-index: 1;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-obsidian text-white min-h-screen pixel-grid">
+    <div class="noise-overlay"></div>
+    
+    <!-- Main App Container -->
+    <div id="app" class="relative z-10">
+        <!-- Lock Screen -->
+        <div id="lockScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-obsidian/95 backdrop-blur-xl">
+            <div class="glass-strong rounded-2xl p-8 max-w-md w-full mx-4 text-center">
+                <div class="mb-6">
+                    <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald to-cyberPurple flex items-center justify-center">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-2">Session Locked</h2>
+                    <p class="text-gray-400 text-sm">Enter your passcode to continue your adventure</p>
+                </div>
+                <div class="space-y-4">
+                    <input type="password" id="passcodeInput" placeholder="Enter passcode" 
+                           class="w-full px-4 py-3 bg-charcoal border border-gray-700 rounded-lg text-center text-2xl tracking-widest focus:outline-none focus:border-emerald transition-colors"
+                           maxlength="6">
+                    <button onclick="app.unlockSession()" 
+                            class="w-full py-3 bg-gradient-to-r from-emerald to-cyberPurple rounded-lg font-semibold hover:opacity-90 transition-opacity">
+                        Unlock
+                    </button>
+                    <p id="lockError" class="text-red-400 text-sm hidden">Incorrect passcode</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav id="navbar" class="hidden fixed top-0 left-0 right-0 z-40 glass-strong border-b border-gray-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald to-cyberPurple flex items-center justify-center">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <span class="font-bold text-xl">Boredom Buster</span>
+                        </div>
+                        <div id="levelBadge" class="hidden px-3 py-1 bg-gradient-to-r from-amberGold to-orange-500 rounded-full text-sm font-bold text-obsidian">
+                            Lv. 1
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 max-w-xl mx-8">
+                        <div class="relative">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs text-gray-400">XP Progress</span>
+                                <span id="xpText" class="text-xs text-emerald font-semibold">0 / 100 XP</span>
+                            </div>
+                            <div class="h-2 bg-charcoal rounded-full overflow-hidden">
+                                <div id="xpBar" class="h-full bg-gradient-to-r from-emerald to-cyberPurple xp-bar-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <button onclick="app.toggleEmergencyButton()" 
+                                class="px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 hover:bg-red-500/30 transition-colors flex items-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <span class="font-semibold">Emergency</span>
+                        </button>
+                        <button onclick="app.lockSession()" 
+                                class="p-2 hover:bg-charcoal rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main id="mainContent" class="hidden pt-20 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <!-- Hero Section -->
+            <div class="mb-8">
+                <div class="glass rounded-2xl p-6 gradient-border">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h1 class="text-3xl font-bold mb-2">Welcome back, <span id="playerName" class="text-emerald">Adventurer</span></h1>
+                            <p class="text-gray-400">Ready to continue your journey?</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-4xl font-bold text-amberGold" id="currentLevel">1</div>
+                            <div class="text-sm text-gray-400">Current Level</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Overview -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                        <div class="glass rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-emerald" id="totalXP">0</div>
+                            <div class="text-xs text-gray-400">Total XP</div>
+                        </div>
+                        <div class="glass rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-cyberPurple" id="questsCompleted">0</div>
+                            <div class="text-xs text-gray-400">Quests Done</div>
+                        </div>
+                        <div class="glass rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-amberGold" id="currentStreak">0</div>
+                            <div class="text-xs text-gray-400">Day Streak</div>
+                        </div>
+                        <div class="glass rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-400" id="badgesEarned">0</div>
+                            <div class="text-xs text-gray-400">Badges</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="mb-6 flex flex-wrap gap-2">
+                <button onclick="app.filterQuests('all')" class="quest-filter active px-4 py-2 glass rounded-lg hover:bg-emerald/20 transition-colors" data-category="all">
+                    All Quests
+                </button>
+                <button onclick="app.filterQuests('vitality')" class="quest-filter px-4 py-2 glass rounded-lg hover:bg-emerald/20 transition-colors" data-category="vitality">
+                    🟢 Vitality
+                </button>
+                <button onclick="app.filterQuests('intellect')" class="quest-filter px-4 py-2 glass rounded-lg hover:bg-blue-500/20 transition-colors" data-category="intellect">
+                    🔵 Intellect
+                </button>
+                <button onclick="app.filterQuests('charisma')" class="quest-filter px-4 py-2 glass rounded-lg hover:bg-cyberPurple/20 transition-colors" data-category="charisma">
+                    🟣 Charisma
+                </button>
+                <button onclick="app.filterQuests('willpower')" class="quest-filter px-4 py-2 glass rounded-lg hover:bg-amberGold/20 transition-colors" data-category="willpower">
+                    🟡 Willpower
+                </button>
+            </div>
+
+            <!-- Quest Arena -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">Quest Arena</h2>
+                <div id="questGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Quests will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Quest Detail Modal -->
+            <div id="questModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-obsidian/90 backdrop-blur-xl p-4">
+                <div class="glass-strong rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <div id="modalQuestRank" class="inline-block px-3 py-1 bg-emerald/20 text-emerald rounded-full text-sm font-semibold mb-2">E-Rank</div>
+                            <h3 id="modalQuestTitle" class="text-2xl font-bold">Quest Title</h3>
+                        </div>
+                        <button onclick="app.closeQuestModal()" class="p-2 hover:bg-charcoal rounded-lg transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <p id="modalQuestDescription" class="text-gray-300 mb-4">Quest description here</p>
+                    
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="glass rounded-lg p-3 text-center">
+                            <div class="text-lg font-bold text-emerald" id="modalQuestXP">+50 XP</div>
+                            <div class="text-xs text-gray-400">XP Reward</div>
+                        </div>
+                        <div class="glass rounded-lg p-3 text-center">
+                            <div class="text-lg font-bold text-cyberPurple" id="modalQuestTime">15 min</div>
+                            <div class="text-xs text-gray-400">Est. Time</div>
+                        </div>
+                        <div class="glass rounded-lg p-3 text-center">
+                            <div class="text-lg font-bold text-amberGold" id="modalQuestAttribute">Vitality</div>
+                            <div class="text-xs text-gray-400">Attribute</div>
+                        </div>
+                    </div>
+
+                    <!-- Camera/Upload Section -->
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-3">Verification</h4>
+                        <div id="cameraSection" class="space-y-4">
+                            <div class="relative aspect-video bg-charcoal rounded-lg overflow-hidden">
+                                <video id="cameraPreview" class="w-full h-full object-cover camera-preview" autoplay playsinline></video>
+                                <div id="cameraPlaceholder" class="absolute inset-0 flex items-center justify-center">
+                                    <div class="text-center">
+                                        <svg class="w-16 h-16 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        </svg>
+                                        <p class="text-gray-500">Camera preview will appear here</p>
+                                    </div>
+                                </div>
+                                <div id="scanOverlay" class="hidden absolute inset-0 bg-emerald/10">
+                                    <div class="scan-line"></div>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="app.startCamera()" class="flex-1 py-2 bg-emerald/20 border border-emerald/50 rounded-lg hover:bg-emerald/30 transition-colors">
+                                    📷 Start Camera
+                                </button>
+                                <button onclick="app.capturePhoto()" class="flex-1 py-2 bg-cyberPurple/20 border border-cyberPurple/50 rounded-lg hover:bg-cyberPurple/30 transition-colors">
+                                    📸 Capture
+                                </button>
+                                <button onclick="app.stopCamera()" class="flex-1 py-2 bg-red-500/20 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors">
+                                    ⏹ Stop
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div id="dropzone" class="dropzone rounded-lg p-8 text-center cursor-pointer">
+                                <svg class="w-12 h-12 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <p class="text-gray-400">Drag & drop photo here or click to upload</p>
+                                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Verification Button -->
+                    <button id="verifyButton" onclick="app.verifyQuest()" disabled
+                            class="w-full py-4 bg-gradient-to-r from-emerald to-cyberPurple rounded-lg font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+                        🔍 Verify Quest Completion
+                    </button>
+                </div>
+            </div>
+
+            <!-- Terminal Console -->
+            <div class="mb-8">
+                <div class="glass rounded-xl p-4">
+                    <div class="flex items-center space-x-2 mb-3">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="ml-2 text-sm text-gray-400">[AI_QUEST_MASTER] Terminal</span>
+                    </div>
+                    <div id="terminalOutput" class="h-48 overflow-y-auto scrollbar-hide terminal-text text-sm space-y-1">
+                        <div class="text-emerald">> System initialized...</div>
+                        <div class="text-gray-400">> Waiting for quest selection...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skill Trees Section -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">Skill Trees</h2>
+                <div class="glass rounded-xl p-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <!-- Vitality -->
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto mb-2 rounded-full bg-emerald/20 border-2 border-emerald flex items-center justify-center skill-node unlocked">
+                                <span class="text-2xl">🟢</span>
+                            </div>
+                            <h3 class="font-semibold text-emerald">Vitality</h3>
+                            <p class="text-xs text-gray-400 mt-1">Physical prowess</p>
+                            <div class="mt-2 text-sm font-bold" id="vitalityLevel">Lv. 1</div>
+                        </div>
+                        
+                        <!-- Intellect -->
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto mb-2 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center skill-node">
+                                <span class="text-2xl">🔵</span>
+                            </div>
+                            <h3 class="font-semibold text-blue-400">Intellect</h3>
+                            <p class="text-xs text-gray-400 mt-1">Mental acuity</p>
+                            <div class="mt-2 text-sm font-bold" id="intellectLevel">Lv. 1</div>
+                        </div>
+                        
+                        <!-- Charisma -->
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto mb-2 rounded-full bg-cyberPurple/20 border-2 border-cyberPurple flex items-center justify-center skill-node">
+                                <span class="text-2xl">🟣</span>
+                            </div>
+                            <h3 class="font-semibold text-cyberPurple">Charisma</h3>
+                            <p class="text-xs text-gray-400 mt-1">Social influence</p>
+                            <div class="mt-2 text-sm font-bold" id="charismaLevel">Lv. 1</div>
+                        </div>
+                        
+                        <!-- Willpower -->
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto mb-2 rounded-full bg-amberGold/20 border-2 border-amberGold flex items-center justify-center skill-node">
+                                <span class="text-2xl">🟡</span>
+                            </div>
+                            <h3 class="font-semibold text-amberGold">Willpower</h3>
+                            <p class="text-xs text-gray-400 mt-1">Self-control</p>
+                            <div class="mt-2 text-sm font-bold" id="willpowerLevel">Lv. 1</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Badges Showcase -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">Achievements</h2>
+                <div id="badgesGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <!-- Badges will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Social Feed (The Tavern) -->
+            <div>
+                <h2 class="text-2xl font-bold mb-4">🏰 The Tavern</h2>
+                <div class="glass rounded-xl p-6">
+                    <div id="socialFeed" class="space-y-4">
+                        <!-- Social posts will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Emergency Modal -->
+        <div id="emergencyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-obsidian/95 backdrop-blur-xl p-4">
+            <div class="glass-strong rounded-2xl p-8 max-w-lg w-full text-center border-2 border-red-500">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center animate-pulse">
+                    <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-bold mb-2 text-red-400">DOPAMINE EMERGENCY</h2>
+                <p class="text-gray-300 mb-6">You're about to fall into a bad habit. Complete this micro-quest NOW!</p>
+                
+                <div class="glass rounded-lg p-6 mb-6">
+                    <div class="text-4xl mb-4">⚡</div>
+                    <h3 id="emergencyQuest" class="text-xl font-bold mb-2">Do 20 jumping jacks and drink a glass of water</h3>
+                    <p class="text-sm text-gray-400">90 seconds to complete</p>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="app.completeEmergencyQuest()" 
+                            class="w-full py-4 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg font-bold text-lg hover:opacity-90 transition-opacity">
+                        ✅ I Completed It!
+                    </button>
+                    <button onclick="app.closeEmergencyModal()" 
+                            class="w-full py-3 glass rounded-lg hover:bg-charcoal transition-colors">
+                        Maybe Later
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // BOREDOM BUSTER - GAMIFIED RPG APPLICATION
+        // ============================================
+
+        // ============================================
+        // INFRASTRUCTURE LAYER - Storage Repository
+        // ============================================
+        class StorageRepository {
+            constructor() {
+                this.storageKey = 'boredom_buster_data';
+                this.sessionKey = 'boredom_buster_session';
+            }
+
+            encrypt(data) {
+                // Simple encryption for demo (in production, use proper encryption)
+                const jsonStr = JSON.stringify(data);
+                return btoa(encodeURIComponent(jsonStr));
+            }
+
+            decrypt(encryptedData) {
+                try {
+                    const jsonStr = decodeURIComponent(atob(encryptedData));
+                    return JSON.parse(jsonStr);
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            saveUserData(userData) {
+                const encrypted = this.encrypt(userData);
+                localStorage.setItem(this.storageKey, encrypted);
+            }
+
+            loadUserData() {
+                const encrypted = localStorage.getItem(this.storageKey);
+                if (!encrypted) return null;
+                return this.decrypt(encrypted);
+            }
+
+            clearUserData() {
+                localStorage.removeItem(this.storageKey);
+            }
+
+            setSession(sessionData) {
+                sessionStorage.setItem(this.sessionKey, JSON.stringify(sessionData));
+            }
+
+            getSession() {
+                const session = sessionStorage.getItem(this.sessionKey);
+                return session ? JSON.parse(session) : null;
+            }
+
+            clearSession() {
+                sessionStorage.removeItem(this.sessionKey);
+            }
+        }
+
+        // ============================================
+        // DOMAIN LAYER - AI Verification Service
+        // ============================================
+        class AIVerificationService {
+            constructor() {
+                this.verificationLogs = [];
+            }
+
+            async analyzeImage(imageData, questContext) {
+                // Simulate AI analysis with latency
+                await this.simulateLatency(1500, 3000);
+                
+                const analysis = {
+                    timestamp: new Date().toISOString(),
+                    questContext: questContext,
+                    detected: this.generateDetectedObjects(questContext),
+                    confidence: Math.random() * 0.3 + 0.7, // 70-100%
+                    antiCheat: this.checkAntiCheat(imageData),
+                    feedback: this.generateFeedback(questContext),
+                    bonusXP: this.calculateBonusXP(questContext)
+                };
+                
+                this.verificationLogs.push(analysis);
+                return analysis;
+            }
+
+            simulateLatency(min, max) {
+                const delay = Math.random() * (max - min) + min;
+                return new Promise(resolve => setTimeout(resolve, delay));
+            }
+
+            generateDetectedObjects(context) {
+                const objects = {
+                    'vitality': ['person', 'exercise_equipment', 'water_glass', 'outdoor_scene'],
+                    'intellect': ['book', 'laptop', 'notebook', 'desk_setup'],
+                    'charisma': ['people', 'phone', 'smiling_faces', 'outdoor_gathering'],
+                    'willpower': ['healthy_food', 'exercise_gear', 'meditation_space', 'clean_environment']
+                };
+                
+                const category = context.category || 'vitality';
+                return objects[category] || objects['vitality'];
+            }
+
+            checkAntiCheat(imageData) {
+                // Simulate anti-cheat detection
+                const isScreenPhoto = Math.random() > 0.9;
+                const isRecycled = Math.random() > 0.95;
+                
+                return {
+                    isScreenPhoto: isScreenPhoto,
+                    isRecycled: isRecycled,
+                    moirePatterns: isScreenPhoto,
+                    metadataConsistent: !isRecycled,
+                    pixelAnalysis: {
+                        reflectionScore: isScreenPhoto ? 0.85 : 0.1,
+                        compressionArtifacts: isRecycled ? 0.9 : 0.2
+                    }
+                };
+            }
+
+            generateFeedback(context) {
+                const feedbacks = {
+                    'vitality': [
+                        "Great energy! Your dedication to physical health is inspiring.",
+                        "Amazing form! +10 bonus XP for proper technique.",
+                        "Hydration check passed! Keep up the great work.",
+                        "Outdoor activity detected. Nature bonus activated!"
+                    ],
+                    'intellect': [
+                        "Knowledge is power! Your study session has been logged.",
+                        "Focused work detected. Deep work bonus: +15 XP!",
+                        "Digital detox successful. Mind clarity increased.",
+                        "Learning mode activated. Neural pathways strengthening!"
+                    ],
+                    'charisma': [
+                        "Social butterfly detected! Connection bonus applied.",
+                        "Kindness multiplier active. You're making the world better.",
+                        "Community engagement logged. Social stats increased!",
+                        "Positive vibes detected. Charisma points earned!"
+                    ],
+                    'willpower': [
+                        "Willpower champion! You resisted temptation.",
+                        "Self-control mastered. Willpower multiplier: 1.5x",
+                        "Habit broken! Freedom points awarded.",
+                        "Discipline detected. Mental strength increased!"
+                    ]
+                };
+                
+                const category = context.category || 'vitality';
+                const options = feedbacks[category] || feedbacks['vitality'];
+                return options[Math.floor(Math.random() * options.length)];
+            }
+
+            calculateBonusXP(context) {
+                const baseBonus = Math.floor(Math.random() * 20);
+                const difficultyMultiplier = context.difficulty === 'S' ? 2 : context.difficulty === 'A' ? 1.5 : 1;
+                return Math.floor(baseBonus * difficultyMultiplier);
+            }
+        }
+
+        // ============================================
+        // DOMAIN LAYER - Game Engine
+        // ============================================
+        class GameEngine {
+            constructor() {
+                this.levelFormula = (n) => Math.floor(100 * Math.pow(n, 1.35));
+            }
+
+            calculateXPForLevel(level) {
+                return this.levelFormula(level);
+            }
+
+            calculateLevel(totalXP) {
+                let level = 1;
+                while (this.calculateXPForLevel(level + 1) <= totalXP) {
+                    level++;
+                }
+                return level;
+            }
+
+            getLevelTitle(level) {
+                if (level <= 4) return 'Couch Potato';
+                if (level <= 9) return 'Novice Strider';
+                if (level <= 19) return 'Urban Adventurer';
+                return 'Real-World Legend';
+            }
+
+            getRankTitle(level) {
+                if (level <= 4) return 'E-Rank';
+                if (level <= 9) return 'D-Rank';
+                if (level <= 14) return 'C-Rank';
+                if (level <= 19) return 'B-Rank';
+                if (level <= 24) return 'A-Rank';
+                return 'S-Rank';
+            }
+
+            calculateStreakBonus(streak) {
+                if (streak < 3) return 1;
+                if (streak < 7) return 1.1;
+                if (streak < 14) return 1.25;
+                if (streak < 30) return 1.5;
+                return 2;
+            }
+
+            calculateAttributePoints(level) {
+                return Math.floor(level / 5);
+            }
+        }
+
+        // ============================================
+        // APPLICATION LAYER - State Store (Pub/Sub)
+        // ============================================
+        class StateStore {
+            constructor() {
+                this.state = {
+                    user: {
+                        name: 'Adventurer',
+                        level: 1,
+                        totalXP: 0,
+                        currentLevelXP: 0,
+                        questsCompleted: 0,
+                        streak: 0,
+                        lastActiveDate: null,
+                        attributes: {
+                            vitality: 1,
+                            intellect: 1,
+                            charisma: 1,
+                            willpower: 1
+                        },
+                        badges: [],
+                        unlockedQuests: ['hydration', 'breathing']
+                    },
+                    currentQuest: null,
+                    isVerified: false,
+                    verificationResult: null
+                };
+                this.subscribers = [];
+            }
+
+            subscribe(callback) {
+                this.subscribers.push(callback);
+                return () => {
+                    this.subscribers = this.subscribers.filter(cb => cb !== callback);
+                };
+            }
+
+            notify() {
+                this.subscribers.forEach(callback => callback(this.state));
+            }
+
+            setState(newState) {
+                this.state = { ...this.state, ...newState };
+                this.notify();
+            }
+
+            getState() {
+                return this.state;
+            }
+
+            addXP(amount, attribute) {
+                const state = this.getState();
+                const streakBonus = new GameEngine().calculateStreakBonus(state.user.streak);
+                const finalXP = Math.floor(amount * streakBonus);
+                
+                state.user.totalXP += finalXP;
+                state.user.currentLevelXP += finalXP;
+                
+                const xpNeeded = new GameEngine().calculateXPForLevel(state.user.level + 1) - 
+                                new GameEngine().calculateXPForLevel(state.user.level);
+                
+                if (state.user.currentLevelXP >= xpNeeded) {
+                    state.user.currentLevelXP -= xpNeeded;
+                    state.user.level++;
+                    state.user.attributes[attribute]++;
+                }
+                
+                this.setState({ user: state.user });
+                return finalXP;
+            }
+
+            completeQuest(quest) {
+                const state = this.getState();
+                state.user.questsCompleted++;
+                
+                // Update streak
+                const today = new Date().toDateString();
+                if (state.user.lastActiveDate !== today) {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    if (state.user.lastActiveDate === yesterday.toDateString()) {
+                        state.user.streak++;
+                    } else if (state.user.lastActiveDate !== today) {
+                        state.user.streak = 1;
+                    }
+                    state.user.lastActiveDate = today;
+                }
+                
+                // Add badge if first quest of the day
+                if (state.user.questsCompleted === 1) {
+                    state.user.badges.push('first_quest');
+                }
+                
+                this.setState({ user: state.user });
+            }
+        }
+
+        // ============================================
+        // PRESENTATION LAYER - Main Application
+        // ============================================
+        class BoredomBusterApp {
+            constructor() {
+                this.storage = new StorageRepository();
+                this.aiService = new AIVerificationService();
+                this.gameEngine = new GameEngine();
+                this.store = new StateStore();
+                this.cameraStream = null;
+                this.capturedImage = null;
+                this.currentQuest = null;
+                this.emergencyQuests = [
+                    "Do 20 jumping jacks and drink a glass of water",
+                    "Complete 10 push-ups right now",
+                    "Hold a plank for 60 seconds",
+                    "Do 15 squats and stretch for 2 minutes",
+                    "Walk around the room 3 times and take 5 deep breaths"
+                ];
+                
+                this.quests = [
+                    {
+                        id: 'hydration',
+                        title: 'Hydration Hero',
+                        description: 'Drink a full glass of water (500ml) right now',
+                        category: 'vitality',
+                        difficulty: 'E',
+                        xp: 30,
+                        time: '2 min',
+                        rank: 'E-Rank'
+                    },
+                    {
+                        id: 'breathing',
+                        title: 'Deep Breathing',
+                        description: 'Complete 5 minutes of deep breathing exercises',
+                        category: 'willpower',
+                        difficulty: 'E',
+                        xp: 25,
+                        time: '5 min',
+                        rank: 'E-Rank'
+                    },
+                    {
+                        id: 'pushups',
+                        title: 'Push-up Power',
+                        description: 'Complete 20 push-ups with proper form',
+                        category: 'vitality',
+                        difficulty: 'D',
+                        xp: 50,
+                        time: '10 min',
+                        rank: 'D-Rank'
+                    },
+                    {
+                        id: 'reading',
+                        title: 'Knowledge Seeker',
+                        description: 'Read 10 pages of a book (no screens!)',
+                        category: 'intellect',
+                        difficulty: 'D',
+                        xp: 45,
+                        time: '15 min',
+                        rank: 'D-Rank'
+                    },
+                    {
+                        id: 'walk',
+                        title: 'Nature Walk',
+                        description: 'Take a 15-minute walk outside',
+                        category: 'vitality',
+                        difficulty: 'C',
+                        xp: 60,
+                        time: '15 min',
+                        rank: 'C-Rank'
+                    },
+                    {
+                        id: 'meditation',
+                        title: 'Mindful Meditation',
+                        description: 'Meditate for 10 minutes',
+                        category: 'willpower',
+                        difficulty: 'C',
+                        xp: 55,
+                        time: '10 min',
+                        rank: 'C-Rank'
+                    },
+                    {
+                        id: 'call_friend',
+                        title: 'Connection Call',
+                        description: 'Call a friend or family member you haven\'t spoken to in a while',
+                        category: 'charisma',
+                        difficulty: 'C',
+                        xp: 65,
+                        time: '10 min',
+                        rank: 'C-Rank'
+                    },
+                    {
+                        id: 'journal',
+                        title: 'Daily Reflection',
+                        description: 'Write 3 things you\'re grateful for in a journal',
+                        category: 'intellect',
+                        difficulty: 'D',
+                        xp: 40,
+                        time: '10 min',
+                        rank: 'D-Rank'
+                    },
+                    {
+                        id: 'cold_shower',
+                        title: 'Cold Shower Challenge',
+                        description: 'Take a 30-second cold shower at the end of your regular shower',
+                        category: 'willpower',
+                        difficulty: 'B',
+                        xp: 80,
+                        time: '5 min',
+                        rank: 'B-Rank'
+                    },
+                    {
+                        id: 'help_neighbor',
+                        title: 'Good Samaritan',
+                        description: 'Help a neighbor with a task or carry their groceries',
+                        category: 'charisma',
+                        difficulty: 'B',
+                        xp: 75,
+                        time: '15 min',
+                        rank: 'B-Rank'
+                    },
+                    {
+                        id: 'workout',
+                        title: 'Full Body Workout',
+                        description: 'Complete a 30-minute full body workout',
+                        category: 'vitality',
+                        difficulty: 'A',
+                        xp: 120,
+                        time: '30 min',
+                        rank: 'A-Rank'
+                    },
+                    {
+                        id: 'learn_skill',
+                        title: 'Skill Acquisition',
+                        description: 'Spend 1 hour learning a new skill (language, instrument, coding)',
+                        category: 'intellect',
+                        difficulty: 'A',
+                        xp: 100,
+                        time: '60 min',
+                        rank: 'A-Rank'
+                    }
+                ];
+
+                this.socialPosts = [
+                    {
+                        id: 1,
+                        user: 'AdventureSeeker42',
+                        quest: 'Morning Run',
+                        timestamp: new Date(Date.now() - 3600000).toISOString(),
+                        likes: 24,
+                        comments: 5,
+                        image: null
+                    },
+                    {
+                        id: 2,
+                        user: 'ZenMaster',
+                        quest: 'Meditation Session',
+                        timestamp: new Date(Date.now() - 7200000).toISOString(),
+                        likes: 18,
+                        comments: 3,
+                        image: null
+                    },
+                    {
+                        id: 3,
+                        user: 'BookWorm',
+                        quest: 'Reading Marathon',
+                        timestamp: new Date(Date.now() - 10800000).toISOString(),
+                        likes: 31,
+                        comments: 7,
+                        image: null
+                    }
+                ];
+
+                this.badges = [
+                    { id: 'first_quest', name: 'First Steps', icon: '👣', description: 'Complete your first quest' },
+                    { id: 'streak_3', name: 'On Fire', icon: '🔥', description: '3 day streak' },
+                    { id: 'streak_7', name: 'Week Warrior', icon: '⚔️', description: '7 day streak' },
+                    { id: 'level_5', name: 'Rising Star', icon: '⭐', description: 'Reach level 5' },
+                    { id: 'level_10', name: 'Veteran', icon: '🏆', description: 'Reach level 10' },
+                    { id: 'social_butterfly', name: 'Social Butterfly', icon: '🦋', description: 'Complete 5 social quests' }
+                ];
+
+                this.init();
+            }
+
+            init() {
+                this.loadUserData();
+                this.setupEventListeners();
+                this.checkSession();
+                this.renderQuests();
+                this.renderBadges();
+                this.renderSocialFeed();
+                this.updateUI();
+            }
+
+            loadUserData() {
+                const userData = this.storage.loadUserData();
+                if (userData) {
+                    this.store.setState({ user: userData });
+                }
+            }
+
+            saveUserData() {
+                const state = this.store.getState();
+                this.storage.saveUserData(state.user);
+            }
+
+            setupEventListeners() {
+                // File upload
+                const dropzone = document.getElementById('dropzone');
+                const fileInput = document.getElementById('fileInput');
+                
+                dropzone.addEventListener('click', () => fileInput.click());
+                dropzone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.add('dragover');
+                });
+                dropzone.addEventListener('dragleave', () => {
+                    dropzone.classList.remove('dragover');
+                });
+                dropzone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.handleFileUpload(files[0]);
+                    }
+                });
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.handleFileUpload(e.target.files[0]);
+                    }
+                });
+
+                // Passcode input
+                const passcodeInput = document.getElementById('passcodeInput');
+                passcodeInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.unlockSession();
+                    }
+                });
+            }
+
+            checkSession() {
+                const session = this.storage.getSession();
+                if (!session || session.expired) {
+                    this.showLockScreen();
+                } else {
+                    this.showMainApp();
+                }
+            }
+
+            showLockScreen() {
+                document.getElementById('lockScreen').classList.remove('hidden');
+                document.getElementById('navbar').classList.add('hidden');
+                document.getElementById('mainContent').classList.add('hidden');
+            }
+
+            showMainApp() {
+                document.getElementById('lockScreen').classList.add('hidden');
+                document.getElementById('navbar').classList.remove('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                this.updateUI();
+            }
+
+            lockSession() {
+                this.storage.setSession({ expired: true, timestamp: Date.now() });
+                this.stopCamera();
+                this.showLockScreen();
+            }
+
+            unlockSession() {
+                const passcode = document.getElementById('passcodeInput').value;
+                const errorElement = document.getElementById('lockError');
+                
+                // Simple passcode check (in production, use proper authentication)
+                if (passcode === '1234' || passcode.length >= 4) {
+                    this.storage.setSession({ expired: false, timestamp: Date.now() });
+                    errorElement.classList.add('hidden');
+                    document.getElementById('passcodeInput').value = '';
+                    this.showMainApp();
+                    this.log('Session unlocked successfully', 'emerald');
+                } else {
+                    errorElement.classList.remove('hidden');
+                }
+            }
+
+            updateUI() {
+                const state = this.store.getState();
+                const user = state.user;
+                
+                // Update level and XP
+                document.getElementById('currentLevel').textContent = user.level;
+                document.getElementById('levelBadge').textContent = `Lv. ${user.level}`;
+                document.getElementById('totalXP').textContent = user.totalXP.toLocaleString();
+                document.getElementById('questsCompleted').textContent = user.questsCompleted;
+                document.getElementById('currentStreak').textContent = user.streak;
+                document.getElementById('badgesEarned').textContent = user.badges.length;
+                
+                // Update XP bar
+                const xpNeeded = this.gameEngine.calculateXPForLevel(user.level + 1) - 
+                                this.gameEngine.calculateXPForLevel(user.level);
+                const xpProgress = (user.currentLevelXP / xpNeeded) * 100;
+                document.getElementById('xpBar').style.width = `${xpProgress}%`;
+                document.getElementById('xpText').textContent = `${user.currentLevelXP} / ${xpNeeded} XP`;
+                
+                // Update skill levels
+                document.getElementById('vitalityLevel').textContent = `Lv. ${user.attributes.vitality}`;
+                document.getElementById('intellectLevel').textContent = `Lv. ${user.attributes.intellect}`;
+                document.getElementById('charismaLevel').textContent = `Lv. ${user.attributes.charisma}`;
+                document.getElementById('willpowerLevel').textContent = `Lv. ${user.attributes.willpower}`;
+            }
+
+            renderQuests(filter = 'all') {
+                const grid = document.getElementById('questGrid');
+                const filteredQuests = filter === 'all' 
+                    ? this.quests 
+                    : this.quests.filter(q => q.category === filter);
+                
+                grid.innerHTML = filteredQuests.map(quest => `
+                    <div class="quest-card glass rounded-xl p-6 cursor-pointer" onclick="app.openQuestModal('${quest.id}')">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="inline-block px-3 py-1 bg-emerald/20 text-emerald rounded-full text-xs font-semibold">
+                                ${quest.rank}
+                            </div>
+                            <div class="text-xs text-gray-400">${quest.time}</div>
+                        </div>
+                        <h3 class="text-lg font-bold mb-2">${quest.title}</h3>
+                        <p class="text-sm text-gray-400 mb-4">${quest.description}</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-emerald font-semibold">+${quest.xp} XP</span>
+                            </div>
+                            <div class="text-xs px-2 py-1 bg-charcoal rounded">
+                                ${quest.category}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            filterQuests(category) {
+                // Update active filter button
+                document.querySelectorAll('.quest-filter').forEach(btn => {
+                    btn.classList.remove('bg-emerald/20', 'text-emerald');
+                    if (btn.dataset.category === category) {
+                        btn.classList.add('bg-emerald/20', 'text-emerald');
+                    }
+                });
+                
+                this.renderQuests(category);
+            }
+
+            openQuestModal(questId) {
+                const quest = this.quests.find(q => q.id === questId);
+                if (!quest) return;
+                
+                this.currentQuest = quest;
+                
+                document.getElementById('modalQuestTitle').textContent = quest.title;
+                document.getElementById('modalQuestDescription').textContent = quest.description;
+                document.getElementById('modalQuestRank').textContent = quest.rank;
+                document.getElementById('modalQuestXP').textContent = `+${quest.xp} XP`;
+                document.getElementById('modalQuestTime').textContent = quest.time;
+                document.getElementById('modalQuestAttribute').textContent = quest.category.charAt(0).toUpperCase() + quest.category.slice(1);
+                
+                document.getElementById('questModal').classList.remove('hidden');
+                this.log(`Quest selected: ${quest.title}`, 'emerald');
+                this.log(`Category: ${quest.category} | Difficulty: ${quest.difficulty}`, 'gray-400');
+            }
+
+            closeQuestModal() {
+                document.getElementById('questModal').classList.add('hidden');
+                this.stopCamera();
+                this.currentQuest = null;
+                this.capturedImage = null;
+                document.getElementById('verifyButton').disabled = true;
+            }
+
+            async startCamera() {
+                try {
+                    this.cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' } 
+                    });
+                    const video = document.getElementById('cameraPreview');
+                    video.srcObject = this.cameraStream;
+                    document.getElementById('cameraPlaceholder').classList.add('hidden');
+                    this.log('Camera activated', 'emerald');
+                } catch (error) {
+                    this.log('Camera access denied or unavailable', 'red-400');
+                    console.error('Camera error:', error);
+                }
+            }
+
+            stopCamera() {
+                if (this.cameraStream) {
+                    this.cameraStream.getTracks().forEach(track => track.stop());
+                    this.cameraStream = null;
+                    document.getElementById('cameraPreview').srcObject = null;
+                    document.getElementById('cameraPlaceholder').classList.remove('hidden');
+                }
+            }
+
+            capturePhoto() {
+                const video = document.getElementById('cameraPreview');
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                
+                this.capturedImage = canvas.toDataURL('image/jpeg');
+                document.getElementById('verifyButton').disabled = false;
+                this.log('Photo captured successfully', 'emerald');
+                
+                // Show scan overlay
+                document.getElementById('scanOverlay').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('scanOverlay').classList.add('hidden');
+                }, 2000);
+            }
+
+            handleFileUpload(file) {
+                if (!file.type.startsWith('image/')) {
+                    this.log('Please upload an image file', 'red-400');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.capturedImage = e.target.result;
+                    document.getElementById('verifyButton').disabled = false;
+                    this.log('Image uploaded successfully', 'emerald');
+                };
+                reader.readAsDataURL(file);
+            }
+
+            async verifyQuest() {
+                if (!this.currentQuest || !this.capturedImage) {
+                    this.log('Please capture or upload a photo first', 'red-400');
+                    return;
+                }
+                
+                this.log('Initiating AI verification...', 'cyberPurple');
+                document.getElementById('scanOverlay').classList.remove('hidden');
+                document.getElementById('verifyButton').disabled = true;
+                document.getElementById('verifyButton').textContent = '🔍 Analyzing...';
+                
+                try {
+                    const result = await this.aiService.analyzeImage(this.capturedImage, {
+                        category: this.currentQuest.category,
+                        difficulty: this.currentQuest.difficulty
+                    });
+                    
+                    this.log(`Analysis complete. Confidence: ${(result.confidence * 100).toFixed(1)}%`, 'emerald');
+                    this.log(`Detected objects: ${result.detected.join(', ')}`, 'gray-400');
+                    
+                    // Check anti-cheat
+                    if (result.antiCheat.isScreenPhoto) {
+                        this.log('[AI_AUDITOR_WARNING]: Digital screen reflections detected! Touch actual physical objects.', 'red-400');
+                        document.getElementById('scanOverlay').classList.add('hidden');
+                        document.getElementById('verifyButton').textContent = '🔍 Verify Quest Completion';
+                        document.getElementById('verifyButton').disabled = false;
+                        return;
+                    }
+                    
+                    if (result.antiCheat.isRecycled) {
+                        this.log('[AI_AUDITOR_WARNING]: This appears to be a recycled image. Please take a new photo.', 'red-400');
+                        document.getElementById('scanOverlay').classList.add('hidden');
+                        document.getElementById('verifyButton').textContent = '🔍 Verify Quest Completion';
+                        document.getElementById('verifyButton').disabled = false;
+                        return;
+                    }
+                    
+                    // Success!
+                    this.log('✅ Verification PASSED!', 'emerald');
+                    this.log(result.feedback, 'amberGold');
+                    
+                    if (result.bonusXP > 0) {
+                        this.log(`Bonus XP awarded: +${result.bonusXP}`, 'amberGold');
+                    }
+                    
+                    // Award XP
+                    const totalXP = this.store.addXP(this.currentQuest.xp + result.bonusXP, this.currentQuest.category);
+                    this.store.completeQuest(this.currentQuest);
+                    this.saveUserData();
+                    
+                    this.log(`Total XP gained: ${totalXP}`, 'emerald');
+                    this.log('Quest completed! Check your stats.', 'cyberPurple');
+                    
+                    // Close modal after delay
+                    setTimeout(() => {
+                        this.closeQuestModal();
+                        this.updateUI();
+                    }, 2000);
+                    
+                } catch (error) {
+                    this.log('Verification failed. Please try again.', 'red-400');
+                    console.error('Verification error:', error);
+                } finally {
+                    document.getElementById('scanOverlay').classList.add('hidden');
+                    document.getElementById('verifyButton').textContent = '🔍 Verify Quest Completion';
+                }
+            }
+
+            toggleEmergencyButton() {
+                const modal = document.getElementById('emergencyModal');
+                const randomQuest = this.emergencyQuests[Math.floor(Math.random() * this.emergencyQuests.length)];
+                document.getElementById('emergencyQuest').textContent = randomQuest;
+                modal.classList.remove('hidden');
+                this.log('🚨 DOPAMINE EMERGENCY ACTIVATED', 'red-400');
+            }
+
+            closeEmergencyModal() {
+                document.getElementById('emergencyModal').classList.add('hidden');
+            }
+
+            completeEmergencyQuest() {
+                this.log('Emergency quest completed! Willpower +10', 'emerald');
+                this.store.addXP(100, 'willpower');
+                this.saveUserData();
+                this.updateUI();
+                this.closeEmergencyModal();
+                
+                // Show celebration
+                this.log('🎉 CRAVING DEFEATED! Willpower Multiplier activated!', 'amberGold');
+            }
+
+            renderBadges() {
+                const grid = document.getElementById('badgesGrid');
+                const state = this.store.getState();
+                
+                grid.innerHTML = this.badges.map(badge => {
+                    const unlocked = state.user.badges.includes(badge.id);
+                    return `
+                        <div class="badge glass rounded-lg p-4 text-center ${unlocked ? 'glow-amber' : 'opacity-50'}">
+                            <div class="text-4xl mb-2">${badge.icon}</div>
+                            <div class="font-semibold text-sm">${badge.name}</div>
+                            <div class="text-xs text-gray-400 mt-1">${badge.description}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            renderSocialFeed() {
+                const feed = document.getElementById('socialFeed');
+                
+                feed.innerHTML = this.socialPosts.map(post => `
+                    <div class="social-post glass rounded-lg p-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald to-cyberPurple flex items-center justify-center font-bold">
+                                ${post.user.charAt(0)}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <span class="font-semibold">${post.user}</span>
+                                    <span class="text-xs text-gray-500">completed</span>
+                                    <span class="text-sm text-emerald font-semibold">${post.quest}</span>
+                                </div>
+                                <div class="text-xs text-gray-500 mb-3">
+                                    ${this.formatTimestamp(post.timestamp)}
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <button class="flex items-center space-x-1 text-gray-400 hover:text-emerald transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                        </svg>
+                                        <span class="text-sm">${post.likes}</span>
+                                    </button>
+                                    <button class="flex items-center space-x-1 text-gray-400 hover:text-cyberPurple transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                        </svg>
+                                        <span class="text-sm">${post.comments}</span>
+                                    </button>
+                                    <button class="flex items-center space-x-1 text-gray-400 hover:text-amberGold transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                        <span class="text-sm">Cheer</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            formatTimestamp(timestamp) {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diff = now - date;
+                const minutes = Math.floor(diff / 60000);
+                const hours = Math.floor(diff / 3600000);
+                
+                if (minutes < 1) return 'Just now';
+                if (minutes < 60) return `${minutes}m ago`;
+                if (hours < 24) return `${hours}h ago`;
+                return date.toLocaleDateString();
+            }
+
+            log(message, colorClass = 'gray-400') {
+                const terminal = document.getElementById('terminalOutput');
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `text-${colorClass}`;
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                terminal.appendChild(logEntry);
+                terminal.scrollTop = terminal.scrollHeight;
+            }
+        }
+
+        // ============================================
+        // INITIALIZE APPLICATION
+        // ============================================
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new BoredomBusterApp();
+        });
+    </script>
+</body>
 </html>
